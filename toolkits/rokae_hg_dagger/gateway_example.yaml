@@ -1,0 +1,36 @@
+robot:
+  type: rokae_robot
+  control_mode: joint_position
+  control_loop_fps: 30
+  zmq_port: 5556
+  gripper_close_position: 0.0
+  gripper_open_position: 1.0
+  cameras:
+    external:
+      type: intelrealsense
+      serial_number_or_name: "REPLACE_EXTERNAL_SERIAL"
+      width: 640
+      height: 480
+      fps: 30
+      use_depth: false
+    wrist:
+      type: intelrealsense
+      serial_number_or_name: "REPLACE_WRIST_SERIAL"
+      width: 640
+      height: 480
+      fps: 30
+      use_depth: false
+
+teleop:
+  type: spacemouse
+  device_index: 0
+  trans_max_vel: 0.1
+  rot_max_vel: 0.2
+
+dataset:
+  fps: 30
+
+bind_address: tcp://0.0.0.0:5560
+intervention_deadband: 0.0001
+intervention_latch_s: 0.5
+request_timeout_ms: 1000

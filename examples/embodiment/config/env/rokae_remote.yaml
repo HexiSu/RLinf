@@ -1,0 +1,18 @@
+env_type: rokae_remote
+total_num_envs: 1
+auto_reset: true
+ignore_terminations: false
+seed: 0
+group_size: 1
+use_fixed_reset_state_ids: false
+max_steps_per_rollout_epoch: 900
+max_episode_steps: null
+# Checkpoint H=50; its RTC deployment metadata replans every 30 control steps.
+execution_horizon: 30
+main_image_key: external
+extra_image_keys: [wrist]
+task_description: "Install an orange cylindrical sleeve workpiece into the front-left slot of the base."
+gateway:
+  address: tcp://ROBOT_PC_IP:5560
+  timeout_ms: 5000
+

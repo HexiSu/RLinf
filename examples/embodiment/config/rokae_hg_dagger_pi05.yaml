@@ -1,0 +1,135 @@
+defaults:
+  - env/rokae_remote@env.train
+  - env/rokae_remote@env.eval
+  - model/pi0@actor.model
+  - hybrid_engines/fsdp@actor.fsdp_config
+  - weight_syncer/patch_syncer@weight_syncer
+  - override hydra/job_logging: stdout
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  searchpath:
+    - file://${oc.env:EMBODIED_PATH}/config/
+
+cluster:
+  num_nodes: 1
+  component_placement:
+    actor: {node_group: train, placement: 0}
+    env: {node_group: train, placement: 0}
+    rollout: {node_group: train, placement: 0}
+  node_groups:
+    - label: train
+      node_ranks: 0
+
+runner:
+  task_type: embodied
+  logger:
+    log_path: ../results
+    project_name: rlinf
+    experiment_name: rokae_hg_dagger_pi05_step3000
+    logger_backends: [tensorboard]
+  max_epochs: 8000
+  max_steps: -1
+  only_eval: false
+  val_check_interval: -1
+  save_interval: 100
+  resume_dir: null
+  ckpt_path: null
+
+algorithm:
+  dagger:
+    only_save_expert: true
+    online_lerobot:
+      enabled: true
+      only_success: true
+      robot_type: rokae_robot
+      fps: 30
+      finalize_interval: 1
+      data_path: ${runner.logger.log_path}/online_lerobot
+      rolling_lerobot_window_size: 50000
+      min_frames: 1
+      lerobot_num_workers: 0
+  gamma: 0.99
+  update_epoch: 1
+  adv_type: gae
+  loss_type: embodied_dagger
+
+env:
+  group_name: EnvGroup
+  train:
+    rollout_epoch: 1
+    smooth_intervene: false
+  eval:
+    rollout_epoch: 1
+
+rollout:
+  group_name: RolloutGroup
+  backend: huggingface
+  recompute_logprobs: false
+  enable_offload: false
+  pipeline_stage_num: 1
+  collect_prev_infos: false
+  model:
+    model_path: /ABS/PATH/pi05_rokae_step3000_torch
+    precision: ${actor.model.precision}
+
+actor:
+  group_name: ActorGroup
+  training_backend: fsdp
+  micro_batch_size: 8
+  global_batch_size: 8
+  seed: 0
+  enable_offload: false
+  model:
+    model_type: openpi
+    precision: null
+    model_path: /ABS/PATH/pi05_rokae_step3000_torch
+    num_action_chunks: 50
+    action_dim: 7
+    add_value_head: false
+    openpi:
+      config_name: pi05_rokae_joint_horizon50
+      num_images_in_input: 2
+      train_expert_only: false
+      detach_critic_input: true
+      rtc_enabled: true
+      max_delay: 6
+      rtc_train_delay: null
+      rtc_prefix_attention_horizon: 5
+      rtc_prefix_attention_end_mode: scaled
+      rtc_prefix_attention_delay_multiplier: 2.0
+      rtc_prefix_attention_offset: 0
+      rtc_prefix_attention_schedule: linear
+      rtc_rate_of_inference: 30
+      action_chunk: ${actor.model.num_action_chunks}
+      action_env_dim: ${actor.model.action_dim}
+    openpi_data:
+      repo_id: schaeffler3d_cr_orange_round_front_left_robot1_cr_spacemouse_v1_20260811/2.1
+      norm_stats_path: /ABS/PATH/pi05_rokae_step3000_torch/assets/schaeffler3d_cr_orange_round_front_left_robot1_cr_spacemouse_v1_20260811/2.1/norm_stats.json
+  optim:
+    lr: 1.0e-5
+    value_lr: 1.0e-4
+    adam_beta1: 0.9
+    adam_beta2: 0.95
+    adam_eps: 1.0e-8
+    weight_decay: 1.0e-10
+    clip_grad: 4.0
+    warmup_style: cosine
+    lr_warmup_steps: 20
+    total_training_steps: 1000
+  fsdp_config:
+    strategy: fsdp
+    sharding_strategy: no_shard
+    gradient_checkpointing: false
+    mixed_precision:
+      param_dtype: ${actor.model.precision}
+      reduce_dtype: ${actor.model.precision}
+      buffer_dtype: ${actor.model.precision}
+
+reward:
+  use_reward_model: false
+
+critic:
+  use_critic_model: false
