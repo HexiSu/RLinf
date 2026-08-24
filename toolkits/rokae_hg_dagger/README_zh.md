@@ -143,6 +143,30 @@ ROBOT_PC_IP=ROBOT_PC_IP \
 bash toolkits/rokae_hg_dagger/run_realworld_hg_dagger.sh train
 ```
 
+### 非交互式服务器任务
+
+如果调度系统只允许提交一个入口命令，使用包装脚本。`prepare` 在提交训练任务前
+手动执行一次；它会在指定 run 目录生成 `jax_step3000/` 和
+`pi05_step3000_torch/`。提交任务时只执行 `train`，不会再访问 checkpoint 服务器、
+执行 SCP 或转换模型。
+
+```bash
+cd /vepfs-1/users/sunhaoxuan/RLinf
+
+# 提交训练任务前执行一次，可观察日志并确认 checkpoint 校验通过。
+ROBOT_PC_IP=192.168.1.20 \
+bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh prepare
+
+# 调度系统的非交互式入口命令。
+ROBOT_PC_IP=192.168.1.20 \
+bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
+```
+
+包装脚本默认使用新服务器镜像的 `/root/miniconda3/bin/python`，并固定只读
+OpenPI 路径 `/vepfs-1/users/piaoweiyi/Projects/openpi`。如调度系统需要显式指定
+地址，可使用 `GATEWAY_ADDRESS=tcp://192.168.1.20:5560`；它会覆盖由
+`ROBOT_PC_IP` 推导出的地址。gateway 必须在机器人电脑上提前启动并保持运行。
+
 若 gateway 与训练机是同一台机器，可以设置 `START_LOCAL_GATEWAY=1`（或自定义
 `GATEWAY_CMD`）后运行 `all`；通常 gateway 在机器人电脑单独启动，因此训练端脚本
 不会重复启动它，只通过 ZeroMQ 连接。脚本支持 `GATEWAY_ADDRESS=tcp://IP:5560`、
