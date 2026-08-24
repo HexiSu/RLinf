@@ -5,7 +5,7 @@
 set -Eeuo pipefail
 
 PHASE=${1:-train}
-ROBOT_PC_IP=${ROBOT_PC_IP:?set ROBOT_PC_IP to the robot computer address}
+ROBOT_PC_IP=${ROBOT_PC_IP:-}
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 RUN_SCRIPT=${SCRIPT_DIR}/run_realworld_hg_dagger.sh
@@ -22,6 +22,7 @@ case "${PHASE}" in
     exec bash "${RUN_SCRIPT}" prepare
     ;;
   train)
+    : "${ROBOT_PC_IP:?set ROBOT_PC_IP to the robot computer address}"
     # All files already created by prepare; no SSH/SCP or conversion is done.
     export SKIP_COPY=1
     export SKIP_CONVERT=1
