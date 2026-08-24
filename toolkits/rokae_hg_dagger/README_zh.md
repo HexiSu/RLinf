@@ -14,8 +14,6 @@
   rokae_hg_dagger_pi05_step3000/checkpoints/
 ```
 
-`/vepfs-1/users/piaoweiyi/Projects/openpi` 只读使用，不写入训练结果。
-
 ## 1. 准备初始 checkpoint
 
 训练服务器执行一次：
@@ -32,23 +30,19 @@ bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh prepare
 scp -r <RUN_ROOT>/pi05_step3000_torch robot@<ROBOT_IP>:/opt/rokae/policies/
 ```
 
-## 2. 启动训练服务器服务
+## 2. 提交唯一的非交互式服务器任务
 
-终端一：
-
-```bash
-python toolkits/rokae_hg_dagger/trajectory_receiver.py \
-  --root <RUN_ROOT>/robot_episodes --host 0.0.0.0 --port 8766
-```
-
-终端二：
+不需要手动打开多个终端。下面一个入口命令会自动启动 episode 接收器、策略服务、
+`.npz` 转换器和 RLinf 训练；训练结束或任务被终止时，后台服务会统一清理：
 
 ```bash
-python toolkits/rokae_hg_dagger/policy_sync_server.py \
-  --latest <RUN_ROOT>/published/latest --host 0.0.0.0 --port 8765
+cd /vepfs-1/users/sunhaoxuan/RLinf
+ROBOT_PC_IP=<ROBOT_IP> \
+bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 ```
 
-只开放机器人电脑到训练服务器的 TCP `8765`、`8766`。
+服务日志位于 `<RUN_ROOT>/trajectory_receiver.log`、`policy_sync_server.log` 和
+`episode_converter.log`。只开放机器人电脑到训练服务器的 TCP `8765`、`8766`。
 
 ## 3. 发布初始策略
 
@@ -84,17 +78,7 @@ python -m rokae_policy_runtime.openpi.cli \
 每个 episode 结束后，机器人保存并上传状态、动作、双路图像和任务文本。上传失败时
 文件保留在 `trajectory_spool_dir`。
 
-## 5. 启动 RLinf 训练
-
-确认 `robot_episodes/` 已收到 episode 后，在训练服务器提交：
-
-```bash
-cd /vepfs-1/users/sunhaoxuan/RLinf
-ROBOT_PC_IP=<ROBOT_IP> \
-bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
-```
-
-续训：
+## 5. 续训
 
 ```bash
 RESUME_DIR=<RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_<N> \
@@ -113,11 +97,11 @@ bash toolkits/rokae_hg_dagger/publish_policy_checkpoint.sh \
 机器人只在下一个 episode 开始时检查 `published/latest`，下载并校验成功后才切换；
 episode 结束不会自动触发策略更新。
 
-## 数据格式
+## 自动数据转换
 
-`trajectory_receiver.py` 接收压缩 `.npz`，包含 `states`、`actions`、
-`images_external`、`images_wrist` 和 `metadata`。接入 `online_lerobot` actor 前，
-需要将 `.npz` 转成 LeRobot episode shard，或配置等价的数据加载器。
+服务器入口会自动运行 `convert_npz_episodes.py --watch`：每收到一个 `.npz`，立即
+转换为 `<RUN_ROOT>/online_lerobot/<episode-id>/` LeRobot shard，再删除已成功转换的
+传输文件。转换失败的文件会保留，错误写入 `episode_converter.log`，不会被训练读取。
 
 首次真机运行请使用 `--mode test` 验证动作维度和相机键名，再切换到 autonomous，并
 降低机械臂速度/加速度，确保急停可用。

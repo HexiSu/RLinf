@@ -44,6 +44,7 @@ INSTALL_DEPS=${INSTALL_DEPS:-0}
 SKIP_COPY=${SKIP_COPY:-0}
 SKIP_CONVERT=${SKIP_CONVERT:-0}
 SKIP_RAY=${SKIP_RAY:-0}
+LOCAL_ROLLOUT=${LOCAL_ROLLOUT:-0}
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 log() { echo "[$(date '+%F %T')] $*"; }
@@ -197,7 +198,9 @@ start_ray() {
 }
 
 start_training() {
-  [[ -n ${ROBOT_PC_IP} || -n ${GATEWAY_ADDRESS} ]] || die "set ROBOT_PC_IP or GATEWAY_ADDRESS"
+  if [[ ${LOCAL_ROLLOUT} != 1 ]]; then
+    [[ -n ${ROBOT_PC_IP} || -n ${GATEWAY_ADDRESS} ]] || die "set ROBOT_PC_IP or GATEWAY_ADDRESS"
+  fi
   validate_torch_checkpoint
   start_ray
   local address_override=""
@@ -205,7 +208,7 @@ start_training() {
   local norm_stats_path
   norm_stats_path=$(find "${TORCH_CHECKPOINT}/assets" -type f -name norm_stats.json -print -quit 2>/dev/null || true)
   [[ -n ${norm_stats_path} ]] || die "no norm_stats.json found under ${TORCH_CHECKPOINT}/assets"
-  [[ -n ${GATEWAY_ADDRESS} ]] && address_override="env.train.gateway.address=${GATEWAY_ADDRESS} env.eval.gateway.address=${GATEWAY_ADDRESS}"
+  [[ ${LOCAL_ROLLOUT} != 1 && -n ${GATEWAY_ADDRESS} ]] && address_override="env.train.gateway.address=${GATEWAY_ADDRESS} env.eval.gateway.address=${GATEWAY_ADDRESS}"
   if [[ -n ${RESUME_DIR} ]]; then
     [[ -d ${RESUME_DIR}/actor ]] || die "resume checkpoint has no actor directory: ${RESUME_DIR}"
     resume_override+=("runner.resume_dir=${RESUME_DIR}")
