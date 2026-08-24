@@ -202,3 +202,55 @@ bash toolkits/rokae_hg_dagger/run_realworld_hg_dagger.sh --help
 4. 检查转换目录的 norm stats SHA256；远端 step 3000 文件已核对为
    `80903fca49d191e756d09ef00b747474d3b4a157ba570f05c661c46e0226b21a`。
 5. 首次闭环把机器人速度/加速度限制降到采集时水平以下，并让操作员手持急停。
+
+## 本地 rollout 模式（推荐用于高延迟网络）
+
+本模式将策略推理和 30Hz 机械臂控制放在机器人电脑，服务器只接收 episode
+数据并发布新 checkpoint。训练机上启动两个服务：
+
+```bash
+cd /vepfs-1/users/sunhaoxuan/RLinf
+
+# 接收机器人上传的 episode（端口 8766）
+python toolkits/rokae_hg_dagger/trajectory_receiver.py \
+  --root /vepfs-1/runs/schaeffler3d/.../robot_episodes \
+  --port 8766
+
+# 提供已发布策略（端口 8765）
+python toolkits/rokae_hg_dagger/policy_sync_server.py \
+  --latest /vepfs-1/runs/schaeffler3d/.../published/latest \
+  --port 8765
+```
+
+机器人电脑启动本地 OpenPI rollout：
+
+```bash
+python -m rokae_policy_runtime.openpi.cli \
+  --bridge async_bridge \
+  --local_checkpoint /opt/rokae/policies/pi05_step3000 \
+  --local_device cuda:0 \
+  --checkpoint_sync_endpoint http://<TRAIN_SERVER_IP>:8765 \
+  --checkpoint_sync_root /opt/rokae/policies/versions \
+  --trajectory_upload_endpoint http://<TRAIN_SERVER_IP>:8766 \
+  --trajectory_spool_dir /opt/rokae/policies/episode_spool \
+  --cam_high_serial <EXTERNAL_SERIAL> \
+  --cam_wrist_serial <WRIST_SERIAL>
+```
+
+启动顺序固定为：
+
+1. 服务器 `prepare`，准备初始 checkpoint。
+2. 服务器启动 `trajectory_receiver.py`。
+3. 服务器启动 `policy_sync_server.py`。
+4. 将初始 checkpoint 发布到 `published/latest`。
+5. 机器人启动本地 rollout。
+6. 服务器启动 RLinf `train`，消费 `robot_episodes/` 中的数据。
+7. 训练产生新的可推理 checkpoint 后，执行 `publish_policy_checkpoint.sh`；机器人在
+   下一个 episode 开始时检查并切换。
+
+episode 上传失败时会保留在机器人 `trajectory_spool_dir`，可以在网络恢复后重新上传。
+策略不会因 episode 结束自动更新，只有 `published/latest` 指向新版本时才会切换。
+
+注意：当前接收器将 episode 保存为压缩 `.npz`，这是传输层格式；接入现有
+`online_lerobot` 训练前需要将其转换为 LeRobot episode shard，或在训练配置中使用
+对应的本地数据导入器。远程 gateway 模式仍可用于联调和回退。
