@@ -32,7 +32,7 @@ LOG_PATH=${LOG_PATH:-"${RUN_ROOT}"}
 # OPENPI_PYTHON must point to the uv/virtualenv interpreter that has openpi,
 # orbax, flax and tyro. RLINF_PYTHON must have RLinf, OpenPI, Ray and embodied
 # deps because actor/rollout workers import OpenPI at runtime.
-OPENPI_PYTHON=${OPENPI_PYTHON:-"/.venv/bin/python"}
+OPENPI_PYTHON=${OPENPI_PYTHON:-"$(command -v python)"}
 RLINF_PYTHON=${RLINF_PYTHON:-"${OPENPI_PYTHON}"}
 GATEWAY_CMD=${GATEWAY_CMD:-}
 START_LOCAL_GATEWAY=${START_LOCAL_GATEWAY:-0}
