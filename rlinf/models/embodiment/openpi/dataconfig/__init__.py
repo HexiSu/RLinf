@@ -67,14 +67,14 @@ from rlinf.models.embodiment.openpi.dataconfig.polaris_dataconfig import (
 from rlinf.models.embodiment.openpi.dataconfig.realworld_dataconfig import (
     LeRobotRealworldDataConfig,
 )
-from rlinf.models.embodiment.openpi.dataconfig.rokae_joint_dataconfig import (
-    LeRobotRokaeJointDataConfig,
-)
 from rlinf.models.embodiment.openpi.dataconfig.robocasa_dataconfig import (
     LeRobotRobocasaDataConfig,
 )
 from rlinf.models.embodiment.openpi.dataconfig.robotwin_aloha_dataconfig import (
     LeRobotAlohaDataConfig,
+)
+from rlinf.models.embodiment.openpi.dataconfig.rokae_joint_dataconfig import (
+    LeRobotRokaeJointDataConfig,
 )
 
 _CONFIGS = [
@@ -85,12 +85,14 @@ _CONFIGS = [
             action_horizon=50,
             action_dim=32,
             discrete_state_input=False,
-            max_token_len=180
+            max_token_len=180,
         ),
         data=LeRobotRokaeJointDataConfig(
             repo_id="schaeffler3d_cr_orange_round_front_left_robot1_cr_spacemouse_v1_20260811/2.1",
             base_config=DataConfig(prompt_from_task=True),
-            assets=AssetsConfig(assets_dir="checkpoints/torch/pi05_rokae_joint_horizon50/assets"),
+            assets=AssetsConfig(
+                assets_dir="checkpoints/torch/pi05_rokae_joint_horizon50/assets"
+            ),
             default_prompt="Install an orange cylindrical sleeve workpiece into the front-left slot of the base.",
         ),
         pytorch_weight_path="checkpoints/torch/pi05_rokae_joint_horizon50",

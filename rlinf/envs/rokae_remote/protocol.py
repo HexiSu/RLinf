@@ -7,7 +7,6 @@ from typing import Any
 import msgpack
 import numpy as np
 
-
 PROTOCOL_VERSION = 1
 _NDARRAY_MARKER = "__ndarray__"
 

@@ -9,7 +9,6 @@ import numpy as np
 from openpi import transforms
 from openpi.models import model as _model
 
-
 ROKAE_ACTION_DIM = 7
 RAW_ROKAE_DIM = 14
 RAW_SELECTION = (0, 1, 2, 3, 4, 5, 13)
@@ -58,8 +57,7 @@ class RokaeJointInputs(transforms.DataTransformFn):
                 wrist_source = data.get("observation/extra_view_image")
             if wrist_source is None:
                 raise KeyError(
-                    "Expected observation/wrist_image or "
-                    "observation/extra_view_image"
+                    "Expected observation/wrist_image or observation/extra_view_image"
                 )
             wrist_image = _parse_image(wrist_source)
         inputs = {
@@ -84,7 +82,9 @@ class RokaeJointInputs(transforms.DataTransformFn):
             inputs["actions"] = transforms.pad_to_dim(actions, self.action_dim)
         if "prompt" in data:
             prompt = data["prompt"]
-            inputs["prompt"] = prompt.decode("utf-8") if isinstance(prompt, bytes) else prompt
+            inputs["prompt"] = (
+                prompt.decode("utf-8") if isinstance(prompt, bytes) else prompt
+            )
         return inputs
 
 

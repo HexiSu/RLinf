@@ -36,12 +36,12 @@ from lerobot_robot_rokae.record.rokae_record_plugin import (
 from lerobot_teleoperator_rokae.devices.spacemouse.config_spacemouse import (  # noqa: F401
     SpacemouseConfig,
 )
+
 from rlinf.envs.rokae_remote.protocol import (
     PROTOCOL_VERSION,
     pack_message,
     unpack_message,
 )
-
 
 LOG = logging.getLogger("rokae_hg_dagger_gateway")
 
@@ -115,11 +115,11 @@ class RokaeGateway:
         self.robot = make_robot_from_config(cfg.robot)
         self.teleop = make_teleoperator_from_config(cfg.teleop)
         defaults = make_default_processors()
-        pipelines = maybe_make_rokae_pipelines(
-            cfg, self.robot, self.teleop, *defaults
-        )
+        pipelines = maybe_make_rokae_pipelines(cfg, self.robot, self.teleop, *defaults)
         if pipelines is None:
-            raise ValueError("ROKAE gateway requires the rokae_robot processor pipeline")
+            raise ValueError(
+                "ROKAE gateway requires the rokae_robot processor pipeline"
+            )
         (
             self.teleop_action_processor,
             self.robot_action_processor,
@@ -140,10 +140,7 @@ class RokaeGateway:
     def _observation(self, raw_obs=None) -> dict[str, Any]:
         raw_obs = self.robot.get_observation() if raw_obs is None else raw_obs
         processed = self.robot_observation_processor(raw_obs)
-        images = {
-            key: np.asarray(processed[key])
-            for key in self.robot.cameras
-        }
+        images = {key: np.asarray(processed[key]) for key in self.robot.cameras}
         return {"state": self._state(processed), "images": images}
 
     @staticmethod
@@ -169,11 +166,17 @@ class RokaeGateway:
         now = time.monotonic()
         if active_now:
             self.last_intervention_time = now
-        active = active_now or now - self.last_intervention_time <= self.cfg.intervention_latch_s
+        active = (
+            active_now
+            or now - self.last_intervention_time <= self.cfg.intervention_latch_s
+        )
         teleop_action = self.teleop_action_processor((raw, obs))
         final_action = self.robot_action_processor((teleop_action, obs))
         expert = np.asarray(
-            [*[final_action[f"joint_pos{i}"] for i in range(6)], final_action["gripper_pos"]],
+            [
+                *[final_action[f"joint_pos{i}"] for i in range(6)],
+                final_action["gripper_pos"],
+            ],
             dtype=np.float32,
         )
         return expert, active
@@ -186,9 +189,7 @@ class RokaeGateway:
         self.keyboard.start()
 
     def reset(self) -> dict[str, Any]:
-        reset_robot_and_grippers(
-            self.robot, self.teleop, self.teleop_action_processor
-        )
+        reset_robot_and_grippers(self.robot, self.teleop, self.teleop_action_processor)
         self.last_intervention_time = -np.inf
         return self._observation()
 
@@ -230,8 +231,7 @@ class RokaeGateway:
                 "action_dim": 7,
                 "fps": self.cfg.dataset.fps,
                 "camera_shapes": {
-                    key: list(value)
-                    for key, value in self.robot._cameras_ft.items()
+                    key: list(value) for key, value in self.robot._cameras_ft.items()
                 },
             }
         if command == "reset":
@@ -277,7 +277,9 @@ class RokaeGateway:
 
 @parser.wrap()
 def main(cfg: GatewayConfig):
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
     gateway = RokaeGateway(cfg)
 
     def stop(*_):
