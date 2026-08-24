@@ -10,27 +10,30 @@ set -Eeuo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 RLINF_ROOT=$(cd -- "${SCRIPT_DIR}/../.." && pwd)
-OPENPI_ROOT=${OPENPI_ROOT:-"${RLINF_ROOT}/../openpi"}
+# Read-only OpenPI tree that produced the step-3000 checkpoint.
+OPENPI_ROOT=${OPENPI_ROOT:-"/vepfs-1/users/piaoweiyi/Projects/openpi"}
 
 REMOTE_HOST=${REMOTE_HOST:-root@115.191.63.139}
 REMOTE_PORT=${REMOTE_PORT:-11557}
 REMOTE_CHECKPOINT=${REMOTE_CHECKPOINT:-"/vepfs-1/runs/schaeffler3d/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/checkpoints/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/3000"}
 
-WORK_ROOT=${WORK_ROOT:-"${RLINF_ROOT}/../checkpoints/rokae_hg_dagger"}
-JAX_CHECKPOINT=${JAX_CHECKPOINT:-"${WORK_ROOT}/jax_step3000"}
-TORCH_CHECKPOINT=${TORCH_CHECKPOINT:-"${WORK_ROOT}/pi05_step3000_torch"}
+RUN_NAME=${RUN_NAME:-"schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001"}
+RUN_ROOT=${RUN_ROOT:-"/vepfs-1/runs/schaeffler3d/${RUN_NAME}"}
+WORK_ROOT=${WORK_ROOT:-"${RUN_ROOT}"}
+JAX_CHECKPOINT=${JAX_CHECKPOINT:-"${RUN_ROOT}/jax_step3000"}
+TORCH_CHECKPOINT=${TORCH_CHECKPOINT:-"${RUN_ROOT}/pi05_step3000_torch"}
 CONFIG_NAME=${CONFIG_NAME:-pi05_rokae_joint_horizon50}
 RLINF_CONFIG=${RLINF_CONFIG:-rokae_hg_dagger_pi05}
 ROBOT_PC_IP=${ROBOT_PC_IP:-}
 GATEWAY_ADDRESS=${GATEWAY_ADDRESS:-}
-DATA_PATH=${DATA_PATH:-"${RLINF_ROOT}/../results/rokae_hg_dagger_pi05/online_lerobot"}
-LOG_PATH=${LOG_PATH:-"${RLINF_ROOT}/../results/rokae_hg_dagger_pi05"}
+DATA_PATH=${DATA_PATH:-"${RUN_ROOT}/online_lerobot"}
+LOG_PATH=${LOG_PATH:-"${RUN_ROOT}"}
 
 # OPENPI_PYTHON must point to the uv/virtualenv interpreter that has openpi,
 # orbax, flax and tyro. RLINF_PYTHON must have RLinf, OpenPI, Ray and embodied
 # deps because actor/rollout workers import OpenPI at runtime.
-OPENPI_PYTHON=${OPENPI_PYTHON:-"${OPENPI_ROOT}/.venv/bin/python"}
-RLINF_PYTHON=${RLINF_PYTHON:-"$(command -v python)"}
+OPENPI_PYTHON=${OPENPI_PYTHON:-"/.venv/bin/python"}
+RLINF_PYTHON=${RLINF_PYTHON:-"${OPENPI_PYTHON}"}
 GATEWAY_CMD=${GATEWAY_CMD:-}
 START_LOCAL_GATEWAY=${START_LOCAL_GATEWAY:-0}
 RAY_ADDRESS=${RAY_ADDRESS:-auto}
@@ -67,6 +70,8 @@ Important environment variables:
   GATEWAY_PYTHON    Python executable for a local gateway (default: RLINF_PYTHON).
   GATEWAY_CONFIG    Local gateway YAML (default: gateway_example.yaml).
   REMOTE_CHECKPOINT Remote step-3000 directory (read-only SCP source).
+  RUN_NAME          Run directory name under /vepfs-1/runs/schaeffler3d.
+  RUN_ROOT          Complete output root for conversion, logs, data and checkpoints.
   JAX_CHECKPOINT    Local directory containing the copied `params/` and `assets/`.
   TORCH_CHECKPOINT  Local converted HuggingFace-style checkpoint directory.
   INSTALL_DEPS=1    Install pytest into RLINF_PYTHON and print missing runtime deps.
@@ -136,10 +141,11 @@ convert_checkpoint() {
   [[ ${SKIP_CONVERT} == 1 ]] && { log "Skipping conversion (SKIP_CONVERT=1)"; return; }
   [[ -n ${OPENPI_PYTHON} ]] || die "OPENPI_PYTHON is required for conversion"
   [[ -x ${OPENPI_PYTHON} ]] || die "OPENPI_PYTHON is not executable: ${OPENPI_PYTHON}"
+  [[ -d ${OPENPI_ROOT}/src/openpi ]] || die "read-only OpenPI source not found: ${OPENPI_ROOT}"
   [[ -d ${JAX_CHECKPOINT}/params ]] || die "missing JAX checkpoint params/: ${JAX_CHECKPOINT}"
   [[ ! -e ${TORCH_CHECKPOINT} ]] || die "refusing to overwrite ${TORCH_CHECKPOINT}; choose a new path"
   log "Converting JAX checkpoint with ${OPENPI_PYTHON}"
-  (cd "${RLINF_ROOT}" && "${OPENPI_PYTHON}" -m rlinf.utils.ckpt_convertor.convert_openpi_jax_to_python \
+  (cd "${RLINF_ROOT}" && PYTHONPATH="${OPENPI_ROOT}/src:${RLINF_ROOT}:${PYTHONPATH:-}" "${OPENPI_PYTHON}" -m rlinf.utils.ckpt_convertor.convert_openpi_jax_to_python \
     --checkpoint-dir "${JAX_CHECKPOINT}" \
     --config-name "${CONFIG_NAME}" \
     --output-path "${TORCH_CHECKPOINT}" \
@@ -188,7 +194,7 @@ start_training() {
   [[ -n ${GATEWAY_ADDRESS} ]] && address_override="env.train.gateway.address=${GATEWAY_ADDRESS} env.eval.gateway.address=${GATEWAY_ADDRESS}"
   log "Starting RLinf HG-DAgger training"
   cd "${RLINF_ROOT}"
-  PYTHONPATH="${RLINF_ROOT}:${PYTHONPATH:-}" \
+  PYTHONPATH="${OPENPI_ROOT}/src:${RLINF_ROOT}:${PYTHONPATH:-}" \
     "${RLINF_PYTHON}" examples/embodiment/train_async.py \
       --config-path examples/embodiment/config \
       --config-name "${RLINF_CONFIG}" \

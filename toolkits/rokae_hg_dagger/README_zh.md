@@ -20,6 +20,17 @@ RLinf 环境每次向策略请求完整的 50 步 action chunk，但网关只执
 
 ## 1. 只读复制 checkpoint 3000
 
+本流程只读使用训练 checkpoint 和 OpenPI 源码，不会写入
+`/vepfs-1/users/piaoweiyi/Projects/openpi`。默认所有生成物统一放在：
+
+```text
+/vepfs-1/runs/schaeffler3d/
+  schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001/
+```
+
+其中包含 `jax_step3000/`、`pi05_step3000_torch/`、`online_lerobot/`、日志和
+RLinf 训练 checkpoint。需要更换实验目录时设置 `RUN_NAME` 或 `RUN_ROOT`。
+
 在训练机执行（`scp` 只读取服务器，不改远端）：
 
 ```bash
@@ -108,6 +119,17 @@ bash examples/embodiment/run_realworld_async.sh rokae_hg_dagger_pi05
 cd /home/suhexi/rokae/RLinf
 OPENPI_PYTHON=/path/to/openpi/.venv/bin/python \
 RLINF_PYTHON=/path/to/rlinf/.venv/bin/python \
+ROBOT_PC_IP=ROBOT_PC_IP \
+bash toolkits/rokae_hg_dagger/run_realworld_hg_dagger.sh prepare
+```
+
+服务器上使用已有的 OpenPI 训练环境时，推荐明确指定只读源码目录和统一输出目录：
+
+```bash
+OPENPI_ROOT=/vepfs-1/users/piaoweiyi/Projects/openpi \
+OPENPI_PYTHON=/.venv/bin/python \
+RLINF_PYTHON=/.venv/bin/python \
+RUN_NAME=schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001 \
 ROBOT_PC_IP=ROBOT_PC_IP \
 bash toolkits/rokae_hg_dagger/run_realworld_hg_dagger.sh prepare
 ```
