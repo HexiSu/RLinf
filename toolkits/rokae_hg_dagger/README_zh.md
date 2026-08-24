@@ -30,10 +30,9 @@ bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh prepare
 scp -r <RUN_ROOT>/pi05_step3000_torch robot@<ROBOT_IP>:/opt/rokae/policies/
 ```
 
-## 2. 提交唯一的非交互式服务器任务
+## 2. 提交服务器任务
 
-不需要手动打开多个终端。下面一个入口命令会自动启动 episode 接收器、策略服务、
-`.npz` 转换器和 RLinf 训练；训练结束或任务被终止时，后台服务会统一清理：
+自动启动 episode 接收器、策略服务、`.npz` 转换器和 RLinf 训练；训练结束或任务被终止时，后台服务会统一清理：
 
 ```bash
 cd /vepfs-1/users/sunhaoxuan/RLinf
@@ -44,16 +43,17 @@ bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 服务日志位于 `<RUN_ROOT>/trajectory_receiver.log`、`policy_sync_server.log` 和
 `episode_converter.log`。只开放机器人电脑到训练服务器的 TCP `8765`、`8766`。
 
-## 3. 发布初始策略
+`prepare` 会同时生成模型种子：
 
-```bash
-bash toolkits/rokae_hg_dagger/publish_policy_checkpoint.sh \
-  <RUN_ROOT>/pi05_step3000_torch <RUN_ROOT>/published
+```text
+<RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_0/actor_seed.pt
 ```
 
-该命令原子更新 `published/latest`。
+该文件是 step-3000 Pi05 权重的 model-only seed，不包含优化器状态。训练入口会用
+`runner.ckpt_path` 加载它，global step 从 0 开始；之后保存的正常 checkpoint 才使用
+标准 `RESUME_DIR`。
 
-## 4. 启动机器人本地 rollout
+## 3. 启动机器人本地 rollout
 
 机器人电脑先启动本机 `rokae_zmq_server`、相机和机械臂驱动，再执行：
 
@@ -78,15 +78,18 @@ python -m rokae_policy_runtime.openpi.cli \
 每个 episode 结束后，机器人保存并上传状态、动作、双路图像和任务文本。上传失败时
 文件保留在 `trajectory_spool_dir`。
 
-## 5. 续训
+## 4. 续训
 
 ```bash
-RESUME_DIR=<RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_<N> \
+RESUME_DIR=<RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_0 \
 ROBOT_PC_IP=<ROBOT_IP> \
 bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 ```
 
-## 6. 发布训练后的策略
+首次训练也使用同一条命令；`global_step_0` 会自动识别为 model-only seed。训练中断后，
+将 `RESUME_DIR` 改为最近的 `global_step_<N>` 即可恢复优化器和 global step。
+
+## 5. 发布训练后的策略
 
 ```bash
 bash toolkits/rokae_hg_dagger/publish_policy_checkpoint.sh \

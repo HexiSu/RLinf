@@ -24,9 +24,9 @@ case "${PHASE}" in
   prepare)
     # Run once before submitting non-interactive training jobs.
     bash "${RUN_SCRIPT}" prepare
-    mkdir -p "${POLICY_PUBLISH_ROOT}"
-    bash "${SCRIPT_DIR}/publish_policy_checkpoint.sh" \
-      "${RUN_ROOT}/pi05_step3000_torch" "${POLICY_PUBLISH_ROOT}"
+    "${RLINF_PYTHON}" "${SCRIPT_DIR}/seed_global_step0.py" \
+      --source "${RUN_ROOT}/pi05_step3000_torch" \
+      --output "${RUN_ROOT}/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_0"
     ;;
   train)
     # All services are children of this one non-interactive job and are cleaned up
@@ -34,8 +34,12 @@ case "${PHASE}" in
     export SKIP_COPY=1
     export SKIP_CONVERT=1
     export LOCAL_ROLLOUT=1
+    export SEED_RESUME_DIR=${SEED_RESUME_DIR:-${RUN_ROOT}/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_0}
     export RAY_HEAD=${RAY_HEAD:-1}
     mkdir -p "${EPISODE_ROOT}" "${DATA_PATH}" "${POLICY_PUBLISH_ROOT}"
+    if [[ ! -e ${POLICY_PUBLISH_ROOT}/latest ]]; then
+      ln -s "${RUN_ROOT}/pi05_step3000_torch" "${POLICY_PUBLISH_ROOT}/latest"
+    fi
     pids=()
     cleanup() {
       trap - EXIT INT TERM

@@ -205,13 +205,19 @@ start_training() {
   start_ray
   local address_override=""
   local -a resume_override=()
+  local -a seed_override=()
   local norm_stats_path
   norm_stats_path=$(find "${TORCH_CHECKPOINT}/assets" -type f -name norm_stats.json -print -quit 2>/dev/null || true)
   [[ -n ${norm_stats_path} ]] || die "no norm_stats.json found under ${TORCH_CHECKPOINT}/assets"
   [[ ${LOCAL_ROLLOUT} != 1 && -n ${GATEWAY_ADDRESS} ]] && address_override="env.train.gateway.address=${GATEWAY_ADDRESS} env.eval.gateway.address=${GATEWAY_ADDRESS}"
   if [[ -n ${RESUME_DIR} ]]; then
-    [[ -d ${RESUME_DIR}/actor ]] || die "resume checkpoint has no actor directory: ${RESUME_DIR}"
-    resume_override+=("runner.resume_dir=${RESUME_DIR}")
+    if [[ -f ${RESUME_DIR}/actor_seed.pt ]]; then
+      log "Loading model-only global_step_0 seed: ${RESUME_DIR}/actor_seed.pt"
+      seed_override+=("runner.ckpt_path=${RESUME_DIR}/actor_seed.pt")
+    else
+      [[ -d ${RESUME_DIR}/actor ]] || die "resume checkpoint has no actor directory: ${RESUME_DIR}"
+      resume_override+=("runner.resume_dir=${RESUME_DIR}")
+    fi
   fi
   log "Starting RLinf HG-DAgger training"
   cd "${RLINF_ROOT}"
@@ -225,6 +231,7 @@ start_training() {
       rollout.model.model_path="${TORCH_CHECKPOINT}" \
       actor.model.openpi_data.norm_stats_path="${norm_stats_path}" \
       ${address_override} \
+      "${seed_override[@]}" \
       "${resume_override[@]}"
 }
 
