@@ -15,6 +15,7 @@ OPENPI_ROOT=${OPENPI_ROOT:-"/vepfs-1/users/piaoweiyi/Projects/openpi"}
 
 REMOTE_HOST=${REMOTE_HOST:-root@115.191.63.139}
 REMOTE_PORT=${REMOTE_PORT:-11557}
+CHECKPOINT_SOURCE=${CHECKPOINT_SOURCE:-local}
 REMOTE_CHECKPOINT=${REMOTE_CHECKPOINT:-"/vepfs-1/runs/schaeffler3d/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/checkpoints/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/schaeffler3d_cr_orange_round_front_left_pi05_rtc_v1_20260811_001/3000"}
 
 RUN_NAME=${RUN_NAME:-"schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001"}
@@ -71,6 +72,7 @@ Important environment variables:
   GATEWAY_PYTHON    Python executable for a local gateway (default: RLINF_PYTHON).
   GATEWAY_CONFIG    Local gateway YAML (default: gateway_example.yaml).
   REMOTE_CHECKPOINT Remote step-3000 directory (read-only SCP source).
+  CHECKPOINT_SOURCE local (default) or ssh; local reads the mounted /vepfs-1 path directly.
   RUN_NAME          Run directory name under /vepfs-1/runs/schaeffler3d.
   RUN_ROOT          Complete output root for conversion, logs, data and checkpoints.
   RESUME_DIR        Optional RLinf checkpoint directory, e.g. RUN_ROOT/experiment/checkpoints/global_step_100.
@@ -127,16 +129,25 @@ copy_checkpoint() {
   [[ ${SKIP_COPY} == 1 ]] && { log "Skipping SCP (SKIP_COPY=1)"; return; }
   mkdir -p "${WORK_ROOT}"
   [[ -e ${JAX_CHECKPOINT} ]] && die "refusing to overwrite existing ${JAX_CHECKPOINT}; set SKIP_COPY=1 or choose another JAX_CHECKPOINT"
-  log "Checking read-only SSH access to ${REMOTE_HOST}:${REMOTE_PORT}"
-  ssh -p "${REMOTE_PORT}" -o BatchMode=yes "${REMOTE_HOST}" "test -d '${REMOTE_CHECKPOINT}/params' && test -d '${REMOTE_CHECKPOINT}/assets'"
-  log "Copying remote step-3000 checkpoint to ${JAX_CHECKPOINT}"
   mkdir -p "${JAX_CHECKPOINT}"
-  scp -P "${REMOTE_PORT}" -r \
-    "${REMOTE_HOST}:${REMOTE_CHECKPOINT}/params" \
-    "${REMOTE_HOST}:${REMOTE_CHECKPOINT}/assets" \
-    "${JAX_CHECKPOINT}/"
-  [[ -d ${JAX_CHECKPOINT}/params ]] || die "SCP result has no params/: ${JAX_CHECKPOINT}"
-  [[ -d ${JAX_CHECKPOINT}/assets ]] || die "SCP result has no assets/: ${JAX_CHECKPOINT}"
+  if [[ ${CHECKPOINT_SOURCE} == local ]]; then
+    log "Copying mounted local step-3000 checkpoint to ${JAX_CHECKPOINT}"
+    [[ -d ${REMOTE_CHECKPOINT}/params && -d ${REMOTE_CHECKPOINT}/assets ]] \
+      || die "local checkpoint is missing params/ or assets/: ${REMOTE_CHECKPOINT}"
+    cp -a "${REMOTE_CHECKPOINT}/params" "${REMOTE_CHECKPOINT}/assets" "${JAX_CHECKPOINT}/"
+  elif [[ ${CHECKPOINT_SOURCE} == ssh ]]; then
+    log "Checking read-only SSH access to ${REMOTE_HOST}:${REMOTE_PORT}"
+    ssh -p "${REMOTE_PORT}" -o BatchMode=yes "${REMOTE_HOST}" "test -d '${REMOTE_CHECKPOINT}/params' && test -d '${REMOTE_CHECKPOINT}/assets'"
+    log "Copying remote step-3000 checkpoint to ${JAX_CHECKPOINT}"
+    scp -P "${REMOTE_PORT}" -r \
+      "${REMOTE_HOST}:${REMOTE_CHECKPOINT}/params" \
+      "${REMOTE_HOST}:${REMOTE_CHECKPOINT}/assets" \
+      "${JAX_CHECKPOINT}/"
+  else
+    die "CHECKPOINT_SOURCE must be local or ssh, got ${CHECKPOINT_SOURCE}"
+  fi
+  [[ -d ${JAX_CHECKPOINT}/params ]] || die "checkpoint copy has no params/: ${JAX_CHECKPOINT}"
+  [[ -d ${JAX_CHECKPOINT}/assets ]] || die "checkpoint copy has no assets/: ${JAX_CHECKPOINT}"
 }
 
 convert_checkpoint() {
