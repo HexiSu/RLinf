@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """LeRobot data configuration matching the ROKAE π0.5 checkpoint contract."""
 
 from __future__ import annotations

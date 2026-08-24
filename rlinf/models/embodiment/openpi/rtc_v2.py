@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """PyTorch port of the RTCv2 semantics used by the ROKAE JAX checkpoint."""
 
 from __future__ import annotations

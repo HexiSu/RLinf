@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 import numpy as np
 
 from rlinf.models.embodiment.openpi.policies.rokae_joint_policy import (

@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """Reliable request/reply client for the ROKAE hardware gateway."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 import numpy as np
 
 from rlinf.envs.rokae_remote.protocol import pack_message, unpack_message

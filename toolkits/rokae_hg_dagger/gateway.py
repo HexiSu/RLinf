@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 The RLinf Authors.
+
 """ROKAE + SpaceMouse gateway for RLinf HG-DAgger.
 
 Run this file in the ``lerobot_rokae`` environment on the robot computer.  It

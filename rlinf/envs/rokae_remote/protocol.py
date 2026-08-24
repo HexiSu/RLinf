@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """Wire protocol shared by the RLinf environment and the ROKAE gateway."""
 
 from __future__ import annotations

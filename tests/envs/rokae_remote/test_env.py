@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 import numpy as np
 import torch
 

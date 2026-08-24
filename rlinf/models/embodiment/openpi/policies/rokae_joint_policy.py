@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """OpenPI transforms for a 6-DoF ROKAE arm with a scalar gripper."""
 
 from __future__ import annotations

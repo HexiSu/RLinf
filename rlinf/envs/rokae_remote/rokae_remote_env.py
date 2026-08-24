@@ -1,3 +1,5 @@
+# Copyright 2026 The RLinf Authors.
+
 """Single-robot RLinf environment backed by a remote ROKAE gateway."""
 
 from __future__ import annotations
