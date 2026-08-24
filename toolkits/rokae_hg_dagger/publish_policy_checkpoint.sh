@@ -15,6 +15,9 @@ fi
 
 mkdir -p "${PUBLISH_ROOT}"
 version=$(basename "${CHECKPOINT}")
+if [[ ${version} == actor && $(basename "$(dirname "${CHECKPOINT}")") == global_step_* ]]; then
+  version=$(basename "$(dirname "${CHECKPOINT}")")
+fi
 published=${PUBLISH_ROOT}/${version}
 if [[ ! -e ${published} ]]; then
   ln -s "${CHECKPOINT}" "${published}"

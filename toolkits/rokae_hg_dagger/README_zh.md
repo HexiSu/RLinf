@@ -75,7 +75,9 @@ python -m rokae_policy_runtime.openpi.cli \
   --control_freq 30
 ```
 
-每个 episode 结束后，机器人保存并上传状态、动作、双路图像和任务文本。上传失败时
+机器人命令中的 `--local_checkpoint` 只是启动兜底模型。只要配置了
+`--checkpoint_sync_endpoint`，后续 episode 会按服务器 `published/latest` 的版本切换，
+不会每次续训都重新固定加载 step-3000。每个 episode 结束后，机器人保存并上传状态、动作、双路图像和任务文本。上传失败时
 文件保留在 `trajectory_spool_dir`。
 
 ## 4. 续训
