@@ -162,6 +162,24 @@ ROBOT_PC_IP=192.168.1.20 \
 bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 ```
 
+中途退出后可以从已保存的 actor checkpoint 续训。checkpoint 默认位于：
+
+```text
+<RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_<N>/
+```
+
+实际实验名以配置中的 `runner.logger.experiment_name` 为准。提交续训任务时设置：
+
+```bash
+RESUME_DIR=/vepfs-1/runs/schaeffler3d/schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_100 \
+ROBOT_PC_IP=192.168.1.20 \
+bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
+```
+
+续训会恢复 actor 权重和 global step，在线 LeRobot 数据仍使用同一个
+`online_lerobot/` 目录。当前 checkpoint 保存的是 actor；rollout worker 会在启动后
+从 actor 同步权重。不要把 `RESUME_DIR` 指向只包含 `model.safetensors` 的初始模型目录。
+
 包装脚本默认使用新服务器镜像的 `/root/miniconda3/bin/python`，并固定只读
 OpenPI 路径 `/vepfs-1/users/piaoweiyi/Projects/openpi`。如调度系统需要显式指定
 地址，可使用 `GATEWAY_ADDRESS=tcp://192.168.1.20:5560`；它会覆盖由

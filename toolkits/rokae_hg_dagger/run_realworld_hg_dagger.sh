@@ -28,6 +28,7 @@ ROBOT_PC_IP=${ROBOT_PC_IP:-}
 GATEWAY_ADDRESS=${GATEWAY_ADDRESS:-}
 DATA_PATH=${DATA_PATH:-"${RUN_ROOT}/online_lerobot"}
 LOG_PATH=${LOG_PATH:-"${RUN_ROOT}"}
+RESUME_DIR=${RESUME_DIR:-}
 
 # OPENPI_PYTHON must point to the uv/virtualenv interpreter that has openpi,
 # orbax, flax and tyro. RLINF_PYTHON must have RLinf, OpenPI, Ray and embodied
@@ -72,6 +73,7 @@ Important environment variables:
   REMOTE_CHECKPOINT Remote step-3000 directory (read-only SCP source).
   RUN_NAME          Run directory name under /vepfs-1/runs/schaeffler3d.
   RUN_ROOT          Complete output root for conversion, logs, data and checkpoints.
+  RESUME_DIR        Optional RLinf checkpoint directory, e.g. RUN_ROOT/experiment/checkpoints/global_step_100.
   JAX_CHECKPOINT    Local directory containing the copied `params/` and `assets/`.
   TORCH_CHECKPOINT  Local converted HuggingFace-style checkpoint directory.
   INSTALL_DEPS=1    Install pytest into RLINF_PYTHON and print missing runtime deps.
@@ -188,10 +190,15 @@ start_training() {
   validate_torch_checkpoint
   start_ray
   local address_override=""
+  local -a resume_override=()
   local norm_stats_path
   norm_stats_path=$(find "${TORCH_CHECKPOINT}/assets" -type f -name norm_stats.json -print -quit 2>/dev/null || true)
   [[ -n ${norm_stats_path} ]] || die "no norm_stats.json found under ${TORCH_CHECKPOINT}/assets"
   [[ -n ${GATEWAY_ADDRESS} ]] && address_override="env.train.gateway.address=${GATEWAY_ADDRESS} env.eval.gateway.address=${GATEWAY_ADDRESS}"
+  if [[ -n ${RESUME_DIR} ]]; then
+    [[ -d ${RESUME_DIR}/actor ]] || die "resume checkpoint has no actor directory: ${RESUME_DIR}"
+    resume_override+=("runner.resume_dir=${RESUME_DIR}")
+  fi
   log "Starting RLinf HG-DAgger training"
   cd "${RLINF_ROOT}"
   PYTHONPATH="${OPENPI_ROOT}/src:${RLINF_ROOT}:${PYTHONPATH:-}" \
@@ -203,7 +210,8 @@ start_training() {
       actor.model.model_path="${TORCH_CHECKPOINT}" \
       rollout.model.model_path="${TORCH_CHECKPOINT}" \
       actor.model.openpi_data.norm_stats_path="${norm_stats_path}" \
-      ${address_override}
+      ${address_override} \
+      "${resume_override[@]}"
 }
 
 case "${phase}" in
