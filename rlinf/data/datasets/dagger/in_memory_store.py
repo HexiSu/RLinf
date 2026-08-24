@@ -295,9 +295,7 @@ class InMemoryArrowStore:
             # when a transform is installed, so it cannot be passed directly
             # to ``torch.stack``.  Read transformed rows individually instead.
             query_result = {
-                key: torch.stack(
-                    [ep_ds[int(q - ep_start)][key] for q in q_idxs]
-                )
+                key: torch.stack([ep_ds[int(q - ep_start)][key] for q in q_idxs])
                 for key, q_idxs in query_indices.items()
                 if key in self._hf_features and key not in self._image_keys
             }

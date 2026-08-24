@@ -34,12 +34,16 @@ def prefix_attention_end(start, max_end, mode, multiplier, offset):
     if mode == "scaled":
         scaled = torch.ceil(start.float() * float(multiplier)).to(torch.int64)
         return torch.where(
-            start == 0, torch.zeros_like(start), torch.minimum(max_end, torch.maximum(start, scaled))
+            start == 0,
+            torch.zeros_like(start),
+            torch.minimum(max_end, torch.maximum(start, scaled)),
         )
     if mode == "offset":
         shifted = start + int(offset)
         return torch.where(
-            start == 0, torch.zeros_like(start), torch.minimum(max_end, torch.maximum(start, shifted))
+            start == 0,
+            torch.zeros_like(start),
+            torch.minimum(max_end, torch.maximum(start, shifted)),
         )
     raise ValueError(f"Invalid RTC prefix attention end mode: {mode}")
 
@@ -70,7 +74,9 @@ def prefix_weights(start, end, total: int, schedule: str, *, dtype=torch.float32
     return torch.where(index >= end_e, torch.zeros_like(weights), weights)
 
 
-def configured_prefix_weights(model, delay, total: int, overlap_horizon=None, dtype=torch.float32):
+def configured_prefix_weights(
+    model, delay, total: int, overlap_horizon=None, dtype=torch.float32
+):
     horizon = getattr(model.config, "rtc_prefix_attention_horizon", None)
     horizon = model.config.max_delay if horizon is None else int(horizon)
     max_end = min(total, horizon)
@@ -166,9 +172,7 @@ def rtc_sft_loss(model, observation, actions):
         )
     else:
         delay = torch.full((batch,), int(fixed_delay), device=actions.device)
-    weights = configured_prefix_weights(
-        model, delay, horizon, dtype=actions.dtype
-    )
+    weights = configured_prefix_weights(model, delay, horizon, dtype=actions.dtype)
     time_masked = (1 - weights) * time[:, None]
     x_t = time_masked[..., None] * noise + (1 - time_masked[..., None]) * actions
     target_velocity = noise - actions
@@ -230,7 +234,8 @@ def sample_actions_with_rtc_guidance(
     aligned = previous[:, rate:, :]
     aligned = F.pad(aligned, (0, 0, 0, max(horizon - aligned.shape[1], 0)))[:, :horizon]
     delay = torch.full(
-        (batch,), min(max(int(rtc_context.delay_steps), 0), int(model.config.max_delay)),
+        (batch,),
+        min(max(int(rtc_context.delay_steps), 0), int(model.config.max_delay)),
         device=device,
         dtype=torch.int64,
     )
@@ -260,5 +265,7 @@ def sample_actions_with_rtc_guidance(
         "chains": torch.stack(chains, dim=1),
         "prev_logprobs": torch.zeros((batch, chunk, env_dim), device=device),
         "prev_values": torch.zeros((batch, 1), device=device),
-        "denoise_inds": torch.full((batch, num_steps), -1, device=device, dtype=torch.long),
+        "denoise_inds": torch.full(
+            (batch, num_steps), -1, device=device, dtype=torch.long
+        ),
     }

@@ -915,7 +915,10 @@ def validate_embodied_cfg(cfg):
     # shape errors cannot first appear after a robot has started moving.
     for _env_name in ("train", "eval"):
         _env_cfg = cfg.env.get(_env_name, None)
-        if _env_cfg is None or _env_cfg.get("env_type") != SupportedEnvType.ROKAE_REMOTE.value:
+        if (
+            _env_cfg is None
+            or _env_cfg.get("env_type") != SupportedEnvType.ROKAE_REMOTE.value
+        ):
             continue
         assert int(_env_cfg.get("total_num_envs", 1)) == 1, (
             "rokae_remote supports exactly one environment per worker; "
@@ -925,7 +928,9 @@ def validate_embodied_cfg(cfg):
             "rokae_remote requires actor/rollout action_dim=7 "
             "([joint_pos0..5, gripper_pos])"
         )
-        _execution_horizon = int(_env_cfg.get("execution_horizon", model_cfg.num_action_chunks))
+        _execution_horizon = int(
+            _env_cfg.get("execution_horizon", model_cfg.num_action_chunks)
+        )
         assert 0 < _execution_horizon <= int(model_cfg.num_action_chunks), (
             "rokae_remote.execution_horizon must be in [1, "
             f"{model_cfg.num_action_chunks}], got {_execution_horizon}"

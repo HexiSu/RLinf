@@ -52,7 +52,9 @@ class RokaeGatewayClient:
         if response.get("request_id") != self._request_id:
             raise RokaeGatewayError("ROKAE gateway returned a mismatched request_id")
         if not response.get("ok", False):
-            raise RokaeGatewayError(str(response.get("error", "gateway request failed")))
+            raise RokaeGatewayError(
+                str(response.get("error", "gateway request failed"))
+            )
         return response
 
     def close(self) -> None:

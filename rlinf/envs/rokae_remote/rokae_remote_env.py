@@ -102,9 +102,7 @@ class RokaeRemoteEnv(gym.Env):
             "task_descriptions": [self.task_description],
         }
         if self.extra_image_keys:
-            extra_images = [
-                np.asarray(images[key]) for key in self.extra_image_keys
-            ]
+            extra_images = [np.asarray(images[key]) for key in self.extra_image_keys]
             extra = np.stack(extra_images, axis=0)
             obs["extra_view_images"] = _tensor(extra[None])
         else:
@@ -148,9 +146,8 @@ class RokaeRemoteEnv(gym.Env):
         reward = float(response.get("reward", 0.0))
         terminated = bool(response.get("terminated", False))
         truncated = bool(response.get("truncated", False))
-        if (
-            self.max_episode_steps is not None
-            and self._elapsed_steps[0] >= int(self.max_episode_steps)
+        if self.max_episode_steps is not None and self._elapsed_steps[0] >= int(
+            self.max_episode_steps
         ):
             truncated = True
         expert = response.get("intervene_action")
@@ -209,8 +206,7 @@ class RokaeRemoteEnv(gym.Env):
             or actions.shape[2] != self.action_dim
         ):
             raise ValueError(
-                "chunk_actions must have shape [1, chunk_size, 7], "
-                f"got {actions.shape}"
+                f"chunk_actions must have shape [1, chunk_size, 7], got {actions.shape}"
             )
         # The policy predicts the full RTC horizon (50 for this checkpoint),
         # while the robot executes only the configured inference window (30).
