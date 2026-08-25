@@ -16,7 +16,9 @@ def make_handler(root: pathlib.Path, max_bytes: int):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):  # noqa: N802
             parsed = urlparse(self.path)
-            if not parsed.path.startswith("/episodes/") or not parsed.path.endswith(".npz"):
+            if not parsed.path.startswith("/episodes/") or not parsed.path.endswith(
+                ".npz"
+            ):
                 self.send_error(404)
                 return
             name = pathlib.PurePosixPath(unquote(parsed.path[len("/episodes/") :])).name
@@ -55,14 +57,18 @@ def make_handler(root: pathlib.Path, max_bytes: int):
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", required=True, help="directory for uploaded episode .npz files")
+    parser.add_argument(
+        "--root", required=True, help="directory for uploaded episode .npz files"
+    )
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument("--max-mb", type=int, default=2048)
     args = parser.parse_args()
     root = pathlib.Path(args.root).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(root, args.max_mb * 1024 * 1024))
+    server = ThreadingHTTPServer(
+        (args.host, args.port), make_handler(root, args.max_mb * 1024 * 1024)
+    )
     print(f"Receiving episodes at http://{args.host}:{args.port}/episodes/")
     server.serve_forever()
 

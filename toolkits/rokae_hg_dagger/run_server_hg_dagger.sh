@@ -59,9 +59,10 @@ case "${PHASE}" in
       --input "${EPISODE_ROOT}" --output "${DATA_PATH}" --fps 30 --watch \
       >"${RUN_ROOT}/episode_converter.log" 2>&1 &
     pids+=("$!")
-    "${SCRIPT_DIR}/watch_publish_policy.sh" \
+    PYTHON_BIN="${RLINF_PYTHON}" "${SCRIPT_DIR}/watch_publish_policy.sh" \
       "${RUN_ROOT}/rokae_hg_dagger_pi05_step3000/checkpoints" \
       "${POLICY_PUBLISH_ROOT}" "${POLICY_WATCH_INTERVAL_S:-10}" \
+      "${RUN_ROOT}/pi05_step3000_torch" \
       >"${RUN_ROOT}/policy_publish.log" 2>&1 &
     pids+=("$!")
     sleep "${SERVICE_STARTUP_S:-2}"

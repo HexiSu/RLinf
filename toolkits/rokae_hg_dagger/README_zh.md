@@ -97,9 +97,9 @@ bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 `runner.save_interval=100` 保持不变；每个完整的 `global_step_N/actor` checkpoint
 稳定写入后，发布器会自动更新 `published/latest`，无需人工执行发布命令。
 
-因此当前同步频率仍是每 100 个训练 step，但每次同步传输的是完整 actor checkpoint，
-在低带宽链路上可能耗时很长。可用 `POLICY_WATCH_INTERVAL_S` 调整扫描间隔，但不能
-减少模型传输大小。
+发布器会先将 actor 的 `full_weights.pt` 导出成只包含推理所需的
+`model.safetensors`、`config.json` 和 `assets/` 的目录，再由机器人同步；优化器状态、
+FSDP shard 和训练元数据不会传到机器人。当前同步频率仍是每 100 个训练 step。
 
 ```bash
 bash toolkits/rokae_hg_dagger/publish_policy_checkpoint.sh \

@@ -7,13 +7,16 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+
 import torch
 from safetensors.torch import load_file
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", required=True, help="converted model.safetensors directory")
+    parser.add_argument(
+        "--source", required=True, help="converted model.safetensors directory"
+    )
     parser.add_argument("--output", required=True, help="global_step_0 directory")
     args = parser.parse_args()
     source = pathlib.Path(args.source).expanduser().resolve()

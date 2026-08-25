@@ -16,7 +16,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 
 
-def build_manifest(root: pathlib.Path, latest: pathlib.Path) -> tuple[str, list[dict[str, str]]]:
+def build_manifest(
+    root: pathlib.Path, latest: pathlib.Path
+) -> tuple[str, list[dict[str, str]]]:
     target = latest.resolve()
     if not target.is_dir():
         raise FileNotFoundError(f"latest checkpoint is not a directory: {target}")
@@ -78,7 +80,9 @@ def make_handler(root: pathlib.Path, latest: pathlib.Path):
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--latest", required=True, help="completed checkpoint directory or symlink")
+    parser.add_argument(
+        "--latest", required=True, help="completed checkpoint directory or symlink"
+    )
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
