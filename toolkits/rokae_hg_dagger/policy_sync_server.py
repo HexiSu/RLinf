@@ -40,6 +40,11 @@ def make_handler(root: pathlib.Path, latest: pathlib.Path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
             parsed = urlparse(self.path)
+            if parsed.path == "/health":
+                self.send_response(200)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             if parsed.path == "/latest.json":
                 nonlocal cached_target, cached_manifest
                 target = latest.resolve()

@@ -16,6 +16,7 @@ export RLINF_PYTHON=${RLINF_PYTHON:-/root/miniconda3/bin/python}
 export RUN_NAME=${RUN_NAME:-schaeffler3d_cr_orange_round_front_left_pi05_rtc_hgdagger_v1_20260824_001}
 export ROBOT_PC_IP
 export RUN_ROOT=${RUN_ROOT:-/vepfs-1/runs/schaeffler3d/${RUN_NAME}}
+export RLINF_ROOT=${RLINF_ROOT:-$(cd "${SCRIPT_DIR}/../.." && pwd)}
 export EPISODE_ROOT=${EPISODE_ROOT:-${RUN_ROOT}/robot_episodes}
 export DATA_PATH=${DATA_PATH:-${RUN_ROOT}/online_lerobot}
 export POLICY_PUBLISH_ROOT=${POLICY_PUBLISH_ROOT:-${RUN_ROOT}/published}
@@ -66,7 +67,21 @@ case "${PHASE}" in
       >"${RUN_ROOT}/policy_publish.log" 2>&1 &
     pids+=("$!")
     sleep "${SERVICE_STARTUP_S:-2}"
-    bash "${RUN_SCRIPT}" train
+    if [[ ${LOCAL_TRAIN_ONLY:-1} == 1 ]]; then
+      cd "${RLINF_ROOT}"
+      PYTHONPATH="${OPENPI_ROOT}/src:${RLINF_ROOT}:${PYTHONPATH:-}" \
+        "${RLINF_PYTHON}" examples/embodiment/train_local_dagger.py \
+          --config-path examples/embodiment/config \
+          --config-name rokae_hg_dagger_pi05 \
+          runner.logger.log_path="${RUN_ROOT}" \
+          algorithm.dagger.online_lerobot.data_path="${DATA_PATH}" \
+          actor.model.model_path="${RUN_ROOT}/pi05_step3000_torch" \
+          rollout.model.model_path="${RUN_ROOT}/pi05_step3000_torch" \
+          actor.model.openpi_data.norm_stats_path="${RUN_ROOT}/pi05_step3000_torch/assets/schaeffler3d_cr_orange_round_front_left_robot1_cr_spacemouse_v1_20260811/2.1/norm_stats.json" \
+          runner.resume_dir="${RESUME_DIR:-${SEED_RESUME_DIR}}"
+    else
+      bash "${RUN_SCRIPT}" train
+    fi
     ;;
   *)
     echo "usage: $0 {prepare|train}" >&2

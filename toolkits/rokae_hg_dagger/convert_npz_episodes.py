@@ -26,7 +26,17 @@ def convert(source: pathlib.Path, output: pathlib.Path, fps: int) -> pathlib.Pat
         raise ValueError(f"invalid episode arrays in {source}")
     if len(states) == 0:
         raise ValueError(f"empty episode: {source}")
-    shard = output / source.stem
+    # Match Async DAgger's archived shard layout so actor resume discovery can
+    # consume files produced while the robot is offline.
+    rank_root = output / "rank_0"
+    rank_root.mkdir(parents=True, exist_ok=True)
+    existing_ids = []
+    for child in rank_root.glob("id_*"):
+        try:
+            existing_ids.append(int(child.name.removeprefix("id_")))
+        except ValueError:
+            continue
+    shard = rank_root / f"id_{max(existing_ids, default=-1) + 1}"
     if shard.exists():
         return shard
     frames = []

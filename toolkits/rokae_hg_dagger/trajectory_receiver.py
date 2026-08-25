@@ -14,6 +14,14 @@ from urllib.parse import unquote, urlparse
 
 def make_handler(root: pathlib.Path, max_bytes: int):
     class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            if urlparse(self.path).path == "/health":
+                self.send_response(200)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            self.send_error(404)
+
         def do_POST(self):  # noqa: N802
             parsed = urlparse(self.path)
             if not parsed.path.startswith("/episodes/") or not parsed.path.endswith(
