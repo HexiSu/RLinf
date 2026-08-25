@@ -93,6 +93,14 @@ bash toolkits/rokae_hg_dagger/run_server_hg_dagger.sh train
 
 ## 5. 发布训练后的策略
 
+单入口训练任务会自动运行 `watch_publish_policy.sh`。配置中的
+`runner.save_interval=100` 保持不变；每个完整的 `global_step_N/actor` checkpoint
+稳定写入后，发布器会自动更新 `published/latest`，无需人工执行发布命令。
+
+因此当前同步频率仍是每 100 个训练 step，但每次同步传输的是完整 actor checkpoint，
+在低带宽链路上可能耗时很长。可用 `POLICY_WATCH_INTERVAL_S` 调整扫描间隔，但不能
+减少模型传输大小。
+
 ```bash
 bash toolkits/rokae_hg_dagger/publish_policy_checkpoint.sh \
   <RUN_ROOT>/rokae_hg_dagger_pi05_step3000/checkpoints/global_step_<N>/actor \

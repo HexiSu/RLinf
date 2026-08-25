@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Copyright 2026 The RLinf Authors.
+set -Eeuo pipefail
+
+CHECKPOINT_ROOT=${1:?checkpoint root required}
+PUBLISH_ROOT=${2:?publish root required}
+INTERVAL_S=${3:-10}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+declare -A published=()
+
+while true; do
+  shopt -s nullglob
+  for actor in "${CHECKPOINT_ROOT}"/global_step_*/actor; do
+    [[ -d ${actor} ]] || continue
+    step=$(basename "$(dirname "${actor}")")
+    [[ ${published[${step}]:-0} == 1 ]] && continue
+    complete=0
+    [[ -f ${actor}/model_state_dict/full_weights.pt ]] && complete=1
+    [[ -f ${actor}/actor/model_state_dict/full_weights.pt ]] && complete=1
+    [[ -f ${actor}/model.safetensors ]] && complete=1
+    [[ ${complete} == 1 ]] || continue
+    # A checkpoint can still be flushed after its weight file appears. Require
+    # a stable size across two polls before publishing it.
+    size1=$(du -sb "${actor}" | awk '{print $1}')
+    sleep 2
+    size2=$(du -sb "${actor}" | awk '{print $1}')
+    [[ ${size1} == ${size2} ]] || continue
+    bash "${SCRIPT_DIR}/publish_policy_checkpoint.sh" "${actor}" "${PUBLISH_ROOT}"
+    published[${step}]=1
+  done
+  sleep "${INTERVAL_S}"
+done
